@@ -25,7 +25,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const connect = useCallback(async () => {
     setIsConnecting(true);
     try {
-      await transact(async (wallet) => {
+      const result = await transact(async (wallet) => {
         const authResult = await wallet.authorize({
           cluster: 'devnet',
           identity: {
@@ -36,16 +36,24 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         });
 
         const pubKey = new PublicKey(authResult.accounts[0].address);
-        setPublicKey(pubKey);
-        setIsConnected(true);
-
+        
         // Get balance
         const bal = await connection.getBalance(pubKey);
-        setBalance(bal / 1e9);
+        
+        return { pubKey, bal };
       });
+
+      // Update state AFTER transact completes
+      if (result) {
+        setPublicKey(result.pubKey);
+        setBalance(result.bal / 1e9);
+        setIsConnected(true);
+      }
     } catch (error) {
       console.error('Wallet connection failed:', error);
       setIsConnected(false);
+      setPublicKey(null);
+      setBalance(null);
     } finally {
       setIsConnecting(false);
     }
