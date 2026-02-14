@@ -50,8 +50,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setIsConnecting(true);
     
     try {
-      let base58Address: string | null = null;
-      
       await transact(async (wallet) => {
         const authResult = await wallet.authorize({
           cluster: 'devnet',
@@ -62,16 +60,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           },
         });
 
-        // Convert address to proper base58 format
-        const address = authResult.accounts[0].address;
-        const pubKey = new PublicKey(address);
-        base58Address = pubKey.toBase58();
+        // Convert to base58 and set state - both inside transact
+        const rawAddress = authResult.accounts[0].address;
+        
+        try {
+          const pubKey = new PublicKey(rawAddress);
+          const base58Address = pubKey.toBase58();
+          setPublicKey(base58Address);
+        } catch (conversionError) {
+          // If rawAddress is already base58, use it directly
+          console.log('Address conversion note:', conversionError);
+          setPublicKey(rawAddress);
+        }
       });
-      
-      // Set state AFTER transact completes
-      if (base58Address) {
-        setPublicKey(base58Address);
-      }
     } catch (error) {
       console.error('Wallet connection failed:', error);
     } finally {
