@@ -21,7 +21,6 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -31,8 +30,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "a868d269-a125-4a1d-9e25-e82c5cd5c2d8"
+        "projectId": "0b5e3a3b-e4da-4a3f-b23b-d7535cb6c60a"
       }
-    }
+    },
+    "owner": "marvellx377"
   }
 }
