@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { PublicKey, Connection, clusterApiUrl, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 import { decode as base64Decode } from 'js-base64';
+import bs58 from 'bs58';
 
 const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
@@ -52,9 +53,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.log('🔵 [2] Starting transact...');
       
       await transact(async (wallet) => {
-        console.log('🔵 [3] Inside transact callback, wallet object:', !!wallet);
+        console.log('🔵 [3] Inside transact callback');
         
-        console.log('🔵 [4] Calling wallet.authorize...');
         const authResult = await wallet.authorize({
           cluster: 'devnet',
           identity: {
@@ -64,59 +64,109 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           },
         });
         
-        console.log('🔵 [5] Authorization result received:', {
-          accountsCount: authResult.accounts.length,
-          authToken: !!authResult.auth_token,
-          walletUriBase: authResult.wallet_uri_base,
-        });
+        console.log('🔵 [4] Auth result received');
 
         if (!authResult.accounts || authResult.accounts.length === 0) {
-          throw new Error('No accounts returned from wallet');
+          throw new Error('No accounts returned');
         }
 
         const account = authResult.accounts[0];
-        console.log('🔵 [6] Raw account data:', {
-          addressType: typeof account.address,
-          addressLength: account.address?.length,
-          label: account.label,
-        });
-
-        console.log('🔵 [7] Decoding base64 address...');
-        // MWA returns address as base64-encoded bytes
-        // Decode base64 to get the raw bytes, then create PublicKey
-        const addressBytes = base64Decode(account.address);
-        console.log('🔵 [8] Decoded bytes length:', addressBytes.length);
-
-        // Convert base64-decoded string to Uint8Array
-        const bytesArray = new Uint8Array(addressBytes.length);
-        for (let i = 0; i < addressBytes.length; i++) {
-          bytesArray[i] = addressBytes.charCodeAt(i);
+        const rawAddress = account.address;
+        
+        console.log('🔵 [5] Raw address from MWA:', rawAddress);
+        console.log('🔵 [5a] Address type:', typeof rawAddress);
+        console.log('🔵 [5b] Address length:', rawAddress.length);
+        
+        // METHOD 1: Try treating it as already base58
+        console.log('\n🔵 METHOD 1: Treating as base58 directly');
+        try {
+          const pubKey1 = new PublicKey(rawAddress);
+          const addr1 = pubKey1.toBase58();
+          console.log('✅ Method 1 result:', addr1);
+        } catch (e) {
+          console.log('❌ Method 1 failed:', e.message);
         }
+
+        // METHOD 2: Decode as base64, then convert to base58
+        console.log('\n🔵 METHOD 2: Decode base64 -> bytes -> base58');
+        try {
+          const decoded = base64Decode(rawAddress);
+          const bytesArray = new Uint8Array(decoded.length);
+          for (let i = 0; i < decoded.length; i++) {
+            bytesArray[i] = decoded.charCodeAt(i);
+          }
+          const pubKey2 = new PublicKey(bytesArray);
+          const addr2 = pubKey2.toBase58();
+          console.log('✅ Method 2 result:', addr2);
+        } catch (e) {
+          console.log('❌ Method 2 failed:', e.message);
+        }
+
+        // METHOD 3: Decode as base64 and treat result as base58
+        console.log('\n🔵 METHOD 3: Decode base64 -> treat as base58');
+        try {
+          const decoded = base64Decode(rawAddress);
+          const pubKey3 = new PublicKey(decoded);
+          const addr3 = pubKey3.toBase58();
+          console.log('✅ Method 3 result:', addr3);
+        } catch (e) {
+          console.log('❌ Method 3 failed:', e.message);
+        }
+
+        // METHOD 4: Decode base64 as Uint8Array directly
+        console.log('\n🔵 METHOD 4: Base64 -> Uint8Array (atob)');
+        try {
+          // Use browser's atob or Buffer
+          const binaryString = atob(rawAddress);
+          const bytesArray = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytesArray[i] = binaryString.charCodeAt(i);
+          }
+          const pubKey4 = new PublicKey(bytesArray);
+          const addr4 = pubKey4.toBase58();
+          console.log('✅ Method 4 result:', addr4);
+        } catch (e) {
+          console.log('❌ Method 4 failed:', e.message);
+        }
+
+        // METHOD 5: Use bs58 decode on raw address
+        console.log('\n🔵 METHOD 5: bs58 decode raw address');
+        try {
+          const bytes = bs58.decode(rawAddress);
+          const pubKey5 = new PublicKey(bytes);
+          const addr5 = pubKey5.toBase58();
+          console.log('✅ Method 5 result:', addr5);
+        } catch (e) {
+          console.log('❌ Method 5 failed:', e.message);
+        }
+
+        console.log('\n🔵 YOUR PHANTOM ADDRESS: Ae3CduDrqbDJW5gQm4zJPftcYrrUMEx6AAVUonhzeGGs');
+        console.log('🔵 Compare each method above to find which matches!');
         
-        console.log('🔵 [9] Creating PublicKey from bytes...');
+        // For now, use Method 2 (what we had before)
+        const decoded = base64Decode(rawAddress);
+        const bytesArray = new Uint8Array(decoded.length);
+        for (let i = 0; i < decoded.length; i++) {
+          bytesArray[i] = decoded.charCodeAt(i);
+        }
         const pubKey = new PublicKey(bytesArray);
-        const base58Address = pubKey.toBase58();
+        const finalAddress = pubKey.toBase58();
         
-        console.log('🔵 [10] ✅ Final address:', base58Address);
-        console.log('🔵 [11] Setting state...');
-        setPublicKey(base58Address);
-        console.log('🔵 [12] State set successfully');
+        console.log('\n🔵 [6] Using address:', finalAddress);
+        setPublicKey(finalAddress);
       });
       
-      console.log('🔵 [13] ✅ Transact completed successfully');
+      console.log('🔵 [7] ✅ Transact completed');
       
     } catch (error) {
-      console.error('🔴 [ERROR] Connection failed:', error);
-      console.error('🔴 [ERROR] Error message:', error?.message);
+      console.error('🔴 ERROR:', error);
       setPublicKey(null);
     } finally {
-      console.log('🔵 [14] Setting isConnecting to false');
       setIsConnecting(false);
     }
   }, []);
 
   const disconnect = useCallback(() => {
-    console.log('🔵 Disconnecting wallet');
     setPublicKey(null);
     setBalance(null);
   }, []);
