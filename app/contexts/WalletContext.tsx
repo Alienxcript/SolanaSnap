@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { PublicKey, Connection, clusterApiUrl, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
-import { toUint8Array } from '@solana-mobile/mobile-wallet-adapter-protocol';
+import { decode as base64Decode } from 'js-base64';
 
 const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
@@ -81,15 +81,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           label: account.label,
         });
 
-        console.log('🔵 [7] Converting address to Uint8Array...');
-        const addressBytes = toUint8Array(account.address);
-        console.log('🔵 [8] Address bytes:', {
-          bytesLength: addressBytes.length,
-          firstBytes: Array.from(addressBytes.slice(0, 8)),
-        });
+        console.log('🔵 [7] Decoding base64 address...');
+        // MWA returns address as base64-encoded bytes
+        // Decode base64 to get the raw bytes, then create PublicKey
+        const addressBytes = base64Decode(account.address);
+        console.log('🔵 [8] Decoded bytes length:', addressBytes.length);
 
+        // Convert base64-decoded string to Uint8Array
+        const bytesArray = new Uint8Array(addressBytes.length);
+        for (let i = 0; i < addressBytes.length; i++) {
+          bytesArray[i] = addressBytes.charCodeAt(i);
+        }
+        
         console.log('🔵 [9] Creating PublicKey from bytes...');
-        const pubKey = new PublicKey(addressBytes);
+        const pubKey = new PublicKey(bytesArray);
         const base58Address = pubKey.toBase58();
         
         console.log('🔵 [10] ✅ Final address:', base58Address);
@@ -101,8 +106,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.log('🔵 [13] ✅ Transact completed successfully');
       
     } catch (error) {
-      console.error('🔴 [ERROR] Connection failed at step:', error);
-      console.error('🔴 [ERROR] Full error object:', JSON.stringify(error, null, 2));
+      console.error('🔴 [ERROR] Connection failed:', error);
+      console.error('🔴 [ERROR] Error message:', error?.message);
       setPublicKey(null);
     } finally {
       console.log('🔵 [14] Setting isConnecting to false');
