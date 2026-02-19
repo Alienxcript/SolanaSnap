@@ -133,9 +133,10 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
 
         console.log('[8] Sending to wallet...');
         
-        // Pass transactions array directly (MWA handles signing and sending)
+        // ✅ Pass transactions with minContextSlot (REQUIRED by MWA)
         const result = await wallet.signAndSendTransactions({
           transactions: [transaction],
+          minContextSlot: latestBlockhash.lastValidBlockHeight - 150, // Safe buffer
         });
 
         const signature = result[0];
