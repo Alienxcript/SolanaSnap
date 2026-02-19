@@ -36,8 +36,9 @@ interface Challenge {
 
 const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
-// Placeholder wallet for receiving stakes (replace with your program's PDA later)
-const CHALLENGE_VAULT = new PublicKey('11111111111111111111111111111111');
+// ✅ FIX: Dedicated Challenge Vault address
+// Replace this with your program's PDA when smart contract is ready
+const CHALLENGE_VAULT = new PublicKey('WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8');
 
 export const ChallengeDetailScreen = ({ route, navigation }: any) => {
   const { challenge } = route.params as { challenge: Challenge };
@@ -101,7 +102,7 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           },
         });
 
-        // Decode the user's public key
+        // Decode the user's public key using atob (the correct method)
         const binaryString = atob(authResult.accounts[0].address);
         const bytesArray = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -110,12 +111,13 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
         const userPubkey = new PublicKey(bytesArray);
 
         console.log('Creating transaction to stake:', challenge.stakeAmount, 'SOL');
+        console.log('From:', userPubkey.toBase58());
+        console.log('To:', CHALLENGE_VAULT.toBase58());
 
         // Get recent blockhash
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
         // Create transaction to send SOL to challenge vault
-        // TODO: Replace with actual program instruction when smart contract is ready
         const transaction = new Transaction({
           feePayer: userPubkey,
           blockhash,
@@ -123,10 +125,12 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
         }).add(
           SystemProgram.transfer({
             fromPubkey: userPubkey,
-            toPubkey: CHALLENGE_VAULT, // Replace with actual program PDA
-            lamports: challenge.stakeAmount * LAMPORTS_PER_SOL,
+            toPubkey: CHALLENGE_VAULT,
+            lamports: Math.floor(challenge.stakeAmount * LAMPORTS_PER_SOL),
           })
         );
+
+        console.log('Transaction created, signing...');
 
         // Sign and send transaction
         const signedTransactions = await wallet.signAndSendTransactions({
@@ -137,7 +141,17 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
         console.log('Transaction sent:', signature);
 
         // Wait for confirmation
-        await connection.confirmTransaction(signature, 'confirmed');
+        console.log('Waiting for confirmation...');
+        const confirmation = await connection.confirmTransaction({
+          signature,
+          blockhash,
+          lastValidBlockHeight,
+        }, 'confirmed');
+
+        if (confirmation.value.err) {
+          throw new Error('Transaction failed to confirm');
+        }
+
         console.log('Transaction confirmed!');
 
         // Update UI
@@ -145,13 +159,14 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
         
         Alert.alert(
           'Success! 🎉',
-          `You've staked ${challenge.stakeAmount} SOL and joined the challenge!\n\nTransaction: ${signature.slice(0, 8)}...`,
+          `You've staked ${challenge.stakeAmount} SOL and joined the challenge!\n\nTransaction: ${signature.slice(0, 8)}...\n\nNow upload your proof before the deadline!`,
           [{ text: 'OK' }]
         );
       });
 
     } catch (error: any) {
       console.error('Failed to join challenge:', error);
+      console.error('Error details:', error.message, error.stack);
       
       Alert.alert(
         'Transaction Failed',
@@ -478,17 +493,6 @@ const styles = StyleSheet.create({
   },
   joinButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  joinedButton: {
-    backgroundColor: '#14F195',
-    paddingVertical: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  joinedButtonText: {
-    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
   },
