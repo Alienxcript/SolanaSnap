@@ -41,7 +41,7 @@ const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 const CHALLENGE_VAULT = new PublicKey('WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8');
 
 export const ChallengeDetailScreen = ({ route, navigation }: any) => {
-  const { challenge } = route.params as { challenge: Challenge };
+  const { challenge, onJoinSuccess } = route.params as { challenge: Challenge; onJoinSuccess?: (challengeId: string) => void };
   const { publicKey, isConnected, balance, connect } = useWallet();
   
   const [isJoining, setIsJoining] = useState(false);
@@ -92,8 +92,9 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
 
     try {
       await transact(async (wallet) => {
-        console.log('[1] Authorizing...');
+        console.log('[1] Starting transaction (using existing session)...');
         
+        // ✅ FIX: Only authorize if not already authorized (reauthorize param)
         const authResult = await wallet.authorize({
           cluster: 'devnet',
           identity: {
@@ -103,22 +104,34 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           },
         });
 
-        console.log('[2] Decoding address...');
-        const binaryString = atob(authResult.accounts[0].address);
-        const bytesArray = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytesArray[i] = binaryString.charCodeAt(i);
+        console.log('[2] Using authorized session');
+
+        // Use publicKey directly if already connected, otherwise decode
+        let userPubkey: PublicKey;
+        
+        if (publicKey) {
+          // Already have publicKey from context
+          userPubkey = new PublicKey(publicKey);
+          console.log('[3] Using cached address');
+        } else {
+          // Decode from auth result
+          const binaryString = atob(authResult.accounts[0].address);
+          const bytesArray = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytesArray[i] = binaryString.charCodeAt(i);
+          }
+          userPubkey = new PublicKey(bytesArray);
+          console.log('[3] Decoded address');
         }
-        const userPubkey = new PublicKey(bytesArray);
 
-        console.log('[3] From:', userPubkey.toBase58());
-        console.log('[4] To:', CHALLENGE_VAULT.toBase58());
-        console.log('[5] Amount:', challenge.stakeAmount, 'SOL');
+        console.log('[4] From:', userPubkey.toBase58());
+        console.log('[5] To:', CHALLENGE_VAULT.toBase58());
+        console.log('[6] Amount:', challenge.stakeAmount, 'SOL');
 
-        console.log('[6] Getting blockhash...');
+        console.log('[7] Getting blockhash...');
         const latestBlockhash = await connection.getLatestBlockhash();
 
-        console.log('[7] Building transaction...');
+        console.log('[8] Building transaction...');
         const transaction = new Transaction();
         transaction.feePayer = userPubkey;
         transaction.recentBlockhash = latestBlockhash.blockhash;
@@ -131,16 +144,16 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           })
         );
 
-        console.log('[8] Sending to wallet...');
+        console.log('[9] Sending to wallet...');
         
         // ✅ Pass transactions with minContextSlot (REQUIRED by MWA)
         const result = await wallet.signAndSendTransactions({
           transactions: [transaction],
-          minContextSlot: latestBlockhash.lastValidBlockHeight - 150, // Safe buffer
+          minContextSlot: latestBlockhash.lastValidBlockHeight - 150,
         });
 
         const signature = result[0];
-        console.log('[9] ✅ Sent! Sig:', signature);
+        console.log('[10] ✅ Sent! Sig:', signature);
 
         // Confirm
         await connection.confirmTransaction({
@@ -149,9 +162,14 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
         });
 
-        console.log('[10] ✅ Confirmed!');
+        console.log('[11] ✅ Confirmed!');
 
         setHasJoined(true);
+        
+        // ✅ Notify parent that user joined this challenge
+        if (onJoinSuccess) {
+          onJoinSuccess(challenge.id);
+        }
         
         Alert.alert(
           'Success! 🎉',

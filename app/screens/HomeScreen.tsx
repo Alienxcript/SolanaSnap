@@ -19,6 +19,7 @@ interface Challenge {
   deadline: Date;
   participants: number;
   prizePool: number;
+  joined?: boolean; // ✅ Track if user joined
 }
 
 export const HomeScreen = ({ navigation }: any) => {
@@ -26,6 +27,7 @@ export const HomeScreen = ({ navigation }: any) => {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [userStreak] = useState(7);
+  const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadChallenges();
@@ -41,6 +43,7 @@ export const HomeScreen = ({ navigation }: any) => {
         deadline: new Date(Date.now() + 8 * 3600 * 1000),
         participants: 23,
         prizePool: 0.5,
+        joined: joinedChallenges.has('1'), // ✅ Check if joined
       },
       {
         id: '2',
@@ -50,6 +53,7 @@ export const HomeScreen = ({ navigation }: any) => {
         deadline: new Date(Date.now() + 12 * 3600 * 1000),
         participants: 45,
         prizePool: 0.8,
+        joined: joinedChallenges.has('2'),
       },
       {
         id: '3',
@@ -59,6 +63,7 @@ export const HomeScreen = ({ navigation }: any) => {
         deadline: new Date(Date.now() + 10 * 3600 * 1000),
         participants: 18,
         prizePool: 0.3,
+        joined: joinedChallenges.has('3'),
       },
     ];
     setChallenges(mockChallenges);
@@ -79,7 +84,14 @@ export const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleChallengePress = (challenge: Challenge) => {
-    navigation.navigate('ChallengeDetail', { challenge });
+    navigation.navigate('ChallengeDetail', { 
+      challenge,
+      onJoinSuccess: (challengeId: string) => {
+        // ✅ Update joined state when user joins
+        setJoinedChallenges(prev => new Set(prev).add(challengeId));
+        loadChallenges(); // Reload to update UI
+      }
+    });
   };
 
   const renderChallengeCard = ({ item }: { item: Challenge }) => (
@@ -94,6 +106,14 @@ export const HomeScreen = ({ navigation }: any) => {
           <Text style={styles.stakeText}>{item.stakeAmount} SOL</Text>
         </View>
       </View>
+      
+      {/* ✅ Show "Joined" badge */}
+      {item.joined && (
+        <View style={styles.joinedBadge}>
+          <Text style={styles.joinedText}>✓ Joined</Text>
+        </View>
+      )}
+      
       <Text style={styles.challengeDescription}>{item.description}</Text>
       <View style={styles.cardStats}>
         <View style={styles.statItem}>
@@ -110,7 +130,9 @@ export const HomeScreen = ({ navigation }: any) => {
         </View>
       </View>
       <View style={styles.joinButtonPreview}>
-        <Text style={styles.joinButtonPreviewText}>Tap to view & join →</Text>
+        <Text style={styles.joinButtonPreviewText}>
+          {item.joined ? 'View details →' : 'Tap to view & join →'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -123,9 +145,17 @@ export const HomeScreen = ({ navigation }: any) => {
           <Text style={styles.headerTitle}>SolanaSnap</Text>
           <Text style={styles.headerSubtitle}>Daily Challenges</Text>
         </View>
+        
+        {/* ✅ FIX 5: Wallet button navigates to Profile instead of disconnect */}
         <TouchableOpacity
           style={styles.walletButton}
-          onPress={isConnected ? disconnect : connect}
+          onPress={() => {
+            if (isConnected) {
+              navigation.navigate('Profile'); // ✅ Navigate to profile
+            } else {
+              connect();
+            }
+          }}
         >
           {isConnected ? (
             <View>
@@ -168,7 +198,7 @@ export const HomeScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#0A0A0A', // ✨ Changed from #000000 - adds subtle depth
+    backgroundColor: '#0A0A0A',
   },
   header: { 
     flexDirection: 'row', 
@@ -177,32 +207,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, 
     paddingTop: 60, 
     paddingBottom: 20, 
-    backgroundColor: '#141414', // ✨ Slightly lighter than background
+    backgroundColor: '#141414',
     borderBottomWidth: 1,
-    borderBottomColor: '#1F1F1F', // ✨ Subtle border
+    borderBottomColor: '#1F1F1F',
   },
   headerTitle: { 
     fontSize: 28, 
     fontWeight: 'bold', 
     color: '#14F195',
-    letterSpacing: -0.5, // ✨ Tighter letter spacing
+    letterSpacing: -0.5,
   },
   headerSubtitle: { 
     fontSize: 14, 
     color: '#888888', 
     marginTop: 4,
-    fontWeight: '500', // ✨ Slightly bolder
+    fontWeight: '500',
   },
   walletButton: { 
     backgroundColor: '#9945FF', 
     paddingHorizontal: 16, 
     paddingVertical: 10, 
     borderRadius: 12,
-    shadowColor: '#9945FF', // ✨ Subtle glow
+    shadowColor: '#9945FF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 6, // ✨ Android shadow
+    elevation: 6,
   },
   walletAddress: { 
     color: '#FFFFFF', 
@@ -213,7 +243,7 @@ const styles = StyleSheet.create({
     color: '#14F195', 
     fontSize: 11, 
     marginTop: 2,
-    fontWeight: '600', // ✨ Bolder
+    fontWeight: '600',
   },
   connectText: { 
     color: '#FFFFFF', 
@@ -223,16 +253,16 @@ const styles = StyleSheet.create({
   streakBanner: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#141414', // ✨ Matches header
+    backgroundColor: '#141414',
     marginHorizontal: 20, 
     marginTop: 16, 
     padding: 16, 
-    borderRadius: 16, // ✨ More rounded
+    borderRadius: 16,
     borderLeftWidth: 4, 
     borderLeftColor: '#FFD700',
-    borderWidth: 1, // ✨ Added border
+    borderWidth: 1,
     borderColor: '#1F1F1F',
-    shadowColor: '#FFD700', // ✨ Subtle gold glow
+    shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -246,26 +276,26 @@ const styles = StyleSheet.create({
     color: '#FFD700', 
     fontSize: 18, 
     fontWeight: 'bold',
-    letterSpacing: -0.3, // ✨ Tighter
+    letterSpacing: -0.3,
   },
   streakSubtext: { 
     color: '#888888', 
     fontSize: 12, 
     marginTop: 2,
-    fontWeight: '500', // ✨ Slightly bolder
+    fontWeight: '500',
   },
   listContent: { 
     padding: 20, 
     paddingBottom: 100 
   },
   challengeCard: { 
-    backgroundColor: '#141414', // ✨ Lighter than background
-    borderRadius: 20, // ✨ More rounded
+    backgroundColor: '#141414',
+    borderRadius: 20,
     padding: 20, 
     marginBottom: 16, 
     borderWidth: 1, 
-    borderColor: '#1F1F1F', // ✨ Subtle border
-    shadowColor: '#000', // ✨ Subtle shadow for depth
+    borderColor: '#1F1F1F',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -282,14 +312,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     color: '#FFFFFF', 
     flex: 1,
-    letterSpacing: -0.3, // ✨ Tighter spacing
+    letterSpacing: -0.3,
   },
   stakeBadge: { 
     backgroundColor: '#14F195', 
     paddingHorizontal: 12, 
     paddingVertical: 6, 
-    borderRadius: 10, // ✨ More rounded
-    shadowColor: '#14F195', // ✨ Subtle glow
+    borderRadius: 10,
+    shadowColor: '#14F195',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -299,6 +329,19 @@ const styles = StyleSheet.create({
     color: '#000000', 
     fontSize: 12, 
     fontWeight: 'bold' 
+  },
+  joinedBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  joinedText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   challengeDescription: { 
     color: '#AAAAAA', 
@@ -312,7 +355,7 @@ const styles = StyleSheet.create({
     marginBottom: 16, 
     paddingTop: 16, 
     borderTopWidth: 1, 
-    borderTopColor: '#1F1F1F', // ✨ Lighter border
+    borderTopColor: '#1F1F1F',
   },
   statItem: { 
     flex: 1 
@@ -322,25 +365,25 @@ const styles = StyleSheet.create({
     fontSize: 11, 
     marginBottom: 4, 
     textTransform: 'uppercase',
-    fontWeight: '600', // ✨ Bolder
-    letterSpacing: 0.5, // ✨ Slight letter spacing
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   statValue: { 
     color: '#14F195', 
     fontSize: 16, 
-    fontWeight: '700', // ✨ Bolder
+    fontWeight: '700',
   },
   statValueWarning: { 
     color: '#FF6B6B', 
     fontSize: 16, 
-    fontWeight: '700', // ✨ Bolder
+    fontWeight: '700',
   },
   joinButtonPreview: { 
     backgroundColor: '#9945FF', 
-    paddingVertical: 14, // ✨ Slightly taller
-    borderRadius: 14, // ✨ More rounded
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#9945FF', // ✨ Subtle glow
+    shadowColor: '#9945FF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -348,33 +391,33 @@ const styles = StyleSheet.create({
   },
   joinButtonPreviewText: { 
     color: '#FFFFFF', 
-    fontSize: 15, // ✨ Slightly larger
-    fontWeight: '700', // ✨ Bolder
+    fontSize: 15,
+    fontWeight: '700',
   },
   connectPrompt: { 
     position: 'absolute', 
     bottom: 0, 
     left: 0, 
     right: 0, 
-    backgroundColor: '#141414', // ✨ Matches header
+    backgroundColor: '#141414',
     padding: 20, 
     borderTopWidth: 1, 
-    borderTopColor: '#1F1F1F', // ✨ Lighter border
-    paddingBottom: 40, // ✨ More padding for gesture area
+    borderTopColor: '#1F1F1F',
+    paddingBottom: 40,
   },
   connectPromptText: { 
     color: '#FFFFFF', 
     fontSize: 14, 
     marginBottom: 12, 
     textAlign: 'center',
-    fontWeight: '500', // ✨ Slightly bolder
+    fontWeight: '500',
   },
   connectPromptButton: { 
     backgroundColor: '#14F195', 
-    paddingVertical: 16, // ✨ Taller
-    borderRadius: 14, // ✨ More rounded
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#14F195', // ✨ Subtle glow
+    shadowColor: '#14F195',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

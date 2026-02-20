@@ -66,12 +66,22 @@ export default function App() {
             <Tab.Screen 
               name="Home" 
               component={HomeStack}
-              options={{ tabBarLabel: 'Challenges' }}
+              options={{ 
+                tabBarLabel: 'Challenges',
+                tabBarIcon: ({ color, size }) => (
+                  <Text style={{ fontSize: size, color }}>🎯</Text>
+                ),
+              }}
             />
             <Tab.Screen 
               name="Profile" 
               component={ProfileScreen}
-              options={{ tabBarLabel: 'Profile' }}
+              options={{ 
+                tabBarLabel: 'Profile',
+                tabBarIcon: ({ color, size }) => (
+                  <Text style={{ fontSize: size, color }}>👤</Text>
+                ),
+              }}
             />
           </Tab.Navigator>
         </NavigationContainer>
