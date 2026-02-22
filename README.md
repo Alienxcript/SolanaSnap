@@ -1,153 +1,215 @@
-# SolanaSnap - Complete Setup Instructions
+# 📸 SolanaSnap
 
-## What You're Getting
+> Daily photo challenges with crypto stakes on Solana
 
-A complete, working SolanaSnap project with:
-- ✅ Mobile Wallet Adapter integration
-- ✅ Challenge feed UI
-- ✅ Profile screen
-- ✅ Wallet connection working
-- ✅ All dependencies configured correctly
-- ✅ Ready to run on Expo Go
+**SolanaSnap** is a mobile-first social accountability app where users stake SOL on daily challenges, submit photo proof, and earn rewards for completion. Built for the Solana Mobile hackathon.
+
+[![Made with Expo](https://img.shields.io/badge/Made%20with-Expo-000020.svg?style=flat&logo=expo)](https://expo.dev)
+[![Solana](https://img.shields.io/badge/Solana-Devnet-14F195?style=flat&logo=solana)](https://solana.com)
+[![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=flat&logo=react)](https://reactnative.dev)
 
 ---
 
-## Setup Steps (10 Minutes)
+## ✨ Features
 
-### Step 1: Clean Slate
+### 🔗 Blockchain Integration
+- **Mobile Wallet Adapter** - Seamless Phantom/Solflare integration
+- **Real SOL Transactions** - Stake and earn on Solana devnet
+- **Auth Token Persistence** - One-tap transaction approvals after initial connection
+- **Automatic Balance Updates** - Real-time SOL balance tracking
 
-Delete your old broken project:
-```
-cd C:\Users\N\Documents\Hackathons\files
-rmdir /s /q SolanaSnap
-```
+### 📱 User Experience
+- **Challenge Feed** - Browse daily photo challenges with live countdowns
+- **Camera Integration** - Capture or upload photos as proof
+- **Gallery Picker** - Select existing photos from device
+- **Auto-Refresh** - Joined badges update automatically when returning to home
+- **Streak Tracking** - 7-day streak display to encourage consistency
 
-### Step 2: Extract This Project
+### 🎨 Modern UI
+- **Gradient Buttons** - Polished Solana-themed gradients (green, purple, gold)
+- **Dark Theme** - Professional #0A0A0A background with depth
+- **Smooth Navigation** - React Navigation with intuitive flow
+- **Tab Bar Icons** - Custom minimalist line icons
 
-1. Download the complete-solanasnap.zip file
-2. Extract it to: `C:\Users\N\Documents\Hackathons\files\`
-3. You should now have: `C:\Users\N\Documents\Hackathons\files\SolanaSnap\`
+---
 
-### Step 3: Install Dependencies
+## 🚀 Quick Start
 
-```
-cd C:\Users\N\Documents\Hackathons\files\SolanaSnap
+### Prerequisites
+- Node.js 18+
+- Expo CLI
+- Android device with Phantom or Solflare wallet
+- Devnet SOL (get from [Solana Faucet](https://faucet.solana.com))
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/Alienxcript/SolanaSnap.git
+cd SolanaSnap
+
+# Install dependencies
 npm install
+
+# Start development server
+npx expo start
 ```
 
-This will take 5-10 minutes. Let it finish completely.
+### Build APK
 
-### Step 4: Start the App
-
+```bash
+# Build for Android
+eas build --platform android --profile preview
 ```
-npm start
-```
-
-A QR code will appear.
-
-### Step 5: Test on Your Phone
-
-1. Open Expo Go (the downgraded version you have)
-2. Scan the QR code
-3. App loads!
 
 ---
 
-## What Should Happen
+## 🏗️ Tech Stack
 
-1. **App loads** - Black screen with green "SolanaSnap" header
-2. **Challenge feed** - You see 3 mock challenges
-3. **Connect Wallet button** - Tap it
-4. **Mobile Wallet Adapter opens** - Phantom/Solflare prompt appears
-5. **Approve** - Your wallet connects
-6. **You see** - Your wallet address and SOL balance
-7. **Streak banner** - Shows "🔥 7 Day Streak!"
-
----
-
-## Troubleshooting
-
-### "npm install" fails
-```
-npm install --legacy-peer-deps
-```
-
-### Metro bundler errors
-```
-npm start -- --clear
-```
-
-### Expo Go version mismatch
-Make sure you're using the downgraded Expo Go (SDK 49 compatible)
-
-### Wallet connection fails
-- Make sure Phantom or Solflare is installed on your phone
-- Check that you approved the connection request
+- **Frontend:** React Native (Expo 51)
+- **Blockchain:** Solana Web3.js, Mobile Wallet Adapter
+- **Navigation:** React Navigation (Stack + Bottom Tabs)
+- **Storage:** AsyncStorage (for auth tokens)
+- **Camera:** Expo Camera + Image Picker
+- **UI:** React Native + Expo Linear Gradient
 
 ---
 
-## Next Steps After It Works
-
-### Week 1 (This Week)
-- [x] Get app running ✅
-- [ ] Add camera screen for photo upload
-- [ ] Create challenge detail screen
-- [ ] Test wallet transactions (small amounts on Devnet)
-
-### Week 2
-- [ ] Deploy smart contract to Devnet
-- [ ] Connect app to smart contract
-- [ ] Test join challenge flow end-to-end
-
-### Week 3
-- [ ] Build APK
-- [ ] Record demo video
-- [ ] Create pitch deck
-- [ ] Submit!
-
----
-
-## Files Included
+## 📂 Project Structure
 
 ```
 SolanaSnap/
-├── package.json              # All dependencies (Expo 51, Solana, Navigation)
-├── metro.config.js           # Metro bundler config (handles .mjs files)
-├── app.json                  # Expo configuration
-├── tsconfig.json             # TypeScript config
-├── App.tsx                   # Entry point with navigation
 ├── app/
-│   ├── hooks/
-│   │   └── useWallet.ts      # Mobile Wallet Adapter integration
+│   ├── contexts/
+│   │   └── WalletContext.tsx      # Wallet connection & auth token management
 │   ├── screens/
-│   │   ├── HomeScreen.tsx    # Challenge feed
-│   │   └── ProfileScreen.tsx # User profile with stats
-│   └── components/           # (Add your components here)
-└── assets/                   # (Add icons/images here)
+│   │   ├── HomeScreen.tsx         # Challenge feed with gradients
+│   │   ├── ProfileScreen.tsx      # User stats and wallet info
+│   │   ├── ChallengeDetailScreen.tsx  # Challenge details & staking
+│   │   └── CameraScreen.tsx       # Photo capture & gallery
+│   └── ...
+├── assets/
+│   ├── icons/                     # Custom tab icons
+│   ├── icon.png                   # App launcher icon
+│   └── splash.png                 # Splash screen
+├── App.tsx                        # Navigation setup
+├── app.json                       # Expo configuration
+└── package.json                   # Dependencies
 ```
 
 ---
 
-## This WILL Work Because:
+## 🔑 Key Components
 
-1. **Expo 51** - Better Solana support than SDK 49
-2. **Correct dependencies** - All version conflicts resolved
-3. **Metro config** - Handles .mjs files properly
-4. **Tested code** - No experimental features
-5. **Buffer polyfills** - Crypto libraries work correctly
+### WalletContext
+Manages Solana wallet connection with auth token persistence for seamless UX.
 
----
+```typescript
+const { publicKey, balance, connect, authToken } = useWallet();
+```
 
-## Ready to Go?
-
-1. Extract the project
-2. Run `npm install`
-3. Run `npm start`
-4. Scan QR code
-5. **IT WORKS!** 🎉
-
-No more errors. No more troubleshooting. Just a working app.
+### Challenge Flow
+1. User browses challenges on HomeScreen
+2. Taps to view ChallengeDetailScreen
+3. Stakes SOL to join (transaction via MWA)
+4. Captures photo proof via CameraScreen
+5. Submits for verification
 
 ---
 
-**Questions? Issues? Let me know and I'll help immediately.**
+## 🎯 Roadmap
+
+### Current (v1.0 - Hackathon Demo)
+- ✅ SOL staking on challenges
+- ✅ Photo capture & upload
+- ✅ Wallet integration
+- ✅ Mock challenge data
+
+### Future (Post-Hackathon)
+- [ ] **Smart Contract** - On-chain challenge & prize pool management
+- [ ] **Backend** - Photo storage (Firebase/IPFS) and verification
+- [ ] **Multi-Token Support** - SEEKER token integration
+- [ ] **Social Features** - Follow friends, leaderboards
+- [ ] **AI Verification** - Automated photo proof validation
+- [ ] **Mainnet Deploy** - Move to production with real stakes
+
+---
+
+## 🔐 Security Notes
+
+- App currently uses **Solana Devnet** (test environment)
+- Vault address: `WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8`
+- Mock data used for challenges (not on-chain yet)
+- Photos stored locally (no backend in v1.0)
+
+**⚠️ Not production-ready.** Do not use with mainnet/real funds.
+
+---
+
+## 🛠️ Development
+
+### Run on Android Device
+
+```bash
+# Start dev server
+npx expo start
+
+# Scan QR code with Expo Go
+# OR build development APK
+eas build --platform android --profile development
+```
+
+### Common Commands
+
+```bash
+npm start              # Start Expo dev server
+npm run android        # Run on Android emulator
+eas build              # Build production APK
+git push               # Deploy to GitHub (triggers EAS build)
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Build Fails
+- Ensure all assets are committed to git
+- Try `eas build --clear-cache`
+- Check EAS build logs for specific errors
+
+### Wallet Won't Connect
+- Install Phantom or Solflare on device
+- Ensure app has camera/storage permissions
+- Check network connection (devnet access required)
+
+### Transactions Fail
+- Verify wallet has sufficient devnet SOL
+- Check console logs for specific errors
+- Ensure auth token is being saved correctly
+
+---
+
+## 📄 License
+
+MIT License - feel free to use for learning or building!
+
+---
+
+## 🙏 Acknowledgments
+
+- **Solana Foundation** - For the blockchain infrastructure
+- **Expo Team** - For the amazing development platform
+- **Solana Mobile** - For Mobile Wallet Adapter
+- **Seeker Phone** - For inspiring the SEEKER token integration idea
+
+---
+
+## 📞 Contact
+
+**Developer:** Alienxcript  
+**GitHub:** [github.com/Alienxcript](https://github.com/Alienxcript)  
+**Project:** [github.com/Alienxcript/SolanaSnap](https://github.com/Alienxcript/SolanaSnap)
+
+---
+
+**Built for Solana Mobile Hackathon 2025** 🚀
