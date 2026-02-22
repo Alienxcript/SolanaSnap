@@ -9,6 +9,7 @@ import {
   RefreshControl,
   StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useWallet, formatPublicKey, formatSOL } from '../contexts/WalletContext';
 
@@ -110,16 +111,26 @@ export const HomeScreen = ({ navigation }: any) => {
     >
       <View style={styles.cardHeader}>
         <Text style={styles.challengeTitle}>{item.title}</Text>
-        <View style={styles.stakeBadge}>
+        <LinearGradient
+          colors={['#14F195', '#0EA97F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.stakeBadge}
+        >
           <Text style={styles.stakeText}>{item.stakeAmount} SOL</Text>
-        </View>
+        </LinearGradient>
       </View>
       
-      {/* ✅ Show "Joined" badge */}
+      {/* ✅ Show "Joined" badge with gradient */}
       {item.joined && (
-        <View style={styles.joinedBadge}>
+        <LinearGradient
+          colors={['#FFD93D', '#F6C744']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.joinedBadge}
+        >
           <Text style={styles.joinedText}>✓ Joined</Text>
-        </View>
+        </LinearGradient>
       )}
       
       <Text style={styles.challengeDescription}>{item.description}</Text>
@@ -137,11 +148,16 @@ export const HomeScreen = ({ navigation }: any) => {
           <Text style={styles.statValueWarning}>{formatTimeRemaining(item.deadline)}</Text>
         </View>
       </View>
-      <View style={styles.joinButtonPreview}>
+      <LinearGradient
+        colors={item.joined ? ['#14F195', '#0EA97F'] : ['#9945FF', '#7928CA']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.joinButtonPreview}
+      >
         <Text style={styles.joinButtonPreviewText}>
           {item.joined ? 'View details →' : 'Tap to view & join →'}
         </Text>
-      </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 
@@ -323,7 +339,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   stakeBadge: { 
-    backgroundColor: '#14F195', 
     paddingHorizontal: 12, 
     paddingVertical: 6, 
     borderRadius: 10,
@@ -339,12 +354,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' 
   },
   joinedBadge: {
-    backgroundColor: '#FFD700',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: 'flex-start',
     marginBottom: 12,
+    shadowColor: '#FFD93D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   joinedText: {
     color: '#000000',
@@ -387,7 +406,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   joinButtonPreview: { 
-    backgroundColor: '#9945FF', 
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
