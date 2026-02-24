@@ -8,13 +8,24 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { 
+  ArrowLeft, 
+  Shield, 
+  Users, 
+  Trophy, 
+  Clock,
+  CheckCircle,
+} from 'lucide-react-native';
 import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
-import { useWallet, formatSOL } from '../contexts/WalletContext';
+import { useWallet } from '../contexts/WalletContext';
 
 interface Challenge {
   id: string;
+  emoji?: string;
   title: string;
   description: string;
   stakeAmount: number;
@@ -28,10 +39,21 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
   const { publicKey, isConnected, balance, authToken, connect } = useWallet();
   const [hasJoined, setHasJoined] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'SOL' | 'SEEKER'>('SOL');
+  const [paymentMethod] = useState<'SOL' | 'SKR'>('SOL');
 
   const CHALLENGE_VAULT = new PublicKey('WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8');
   const connection = new (require('@solana/web3.js')).Connection('https://api.devnet.solana.com', 'confirmed');
+
+  const formatTimeRemaining = (deadline: Date): string => {
+    const now = new Date();
+    const diff = deadline.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Ended';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  };
 
   const handleJoinChallenge = async () => {
     if (!isConnected || !publicKey) {
@@ -42,7 +64,6 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
       return;
     }
 
-    // Check sufficient balance
     const requiredAmount = challenge.stakeAmount;
     
     if (balance === null || balance < requiredAmount) {
@@ -57,8 +78,6 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
 
     try {
       await transact(async (wallet) => {
-        console.log('[1] Starting SOL transaction...');
-        
         const authResult = await wallet.authorize({
           cluster: 'devnet',
           identity: {
@@ -68,24 +87,14 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           },
           auth_token: authToken || undefined,
         });
-
-        console.log('[2] Authorized');
         
         const userPubkey = new PublicKey(publicKey);
-        
-        console.log('[3] From:', userPubkey.toBase58());
-        console.log('[4] To:', CHALLENGE_VAULT.toBase58());
-        console.log('[5] Amount:', requiredAmount, 'SOL');
-
-        console.log('[6] Getting blockhash...');
         const latestBlockhash = await connection.getLatestBlockhash();
 
-        console.log('[7] Building transaction...');
         const transaction = new Transaction();
         transaction.feePayer = userPubkey;
         transaction.recentBlockhash = latestBlockhash.blockhash;
         
-        // Always use SOL transfer (SEEKER is UI-only)
         transaction.add(
           SystemProgram.transfer({
             fromPubkey: userPubkey,
@@ -94,23 +103,18 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           })
         );
 
-        console.log('[8] Sending to wallet...');
-        
         const result = await wallet.signAndSendTransactions({
           transactions: [transaction],
           minContextSlot: latestBlockhash.lastValidBlockHeight - 150,
         });
 
         const signature = result[0];
-        console.log('[9] ✅ Sent! Sig:', signature);
 
         await connection.confirmTransaction({
           signature,
           blockhash: latestBlockhash.blockhash,
           lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
         });
-
-        console.log('[10] ✅ Confirmed!');
 
         setHasJoined(true);
         
@@ -120,7 +124,7 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
         
         Alert.alert(
           'Success! 🎉',
-          `You've staked ${requiredAmount} SOL!\n\nTx: ${signature.slice(0, 8)}...`,
+          `You've staked ${requiredAmount} SOL!`,
           [{ text: 'OK' }]
         );
       });
@@ -141,114 +145,150 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const formatTimeRemaining = (deadline: Date): string => {
-    const now = new Date();
-    const diff = deadline.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  };
+  const timeLeft = formatTimeRemaining(challenge.deadline);
+  const isEnded = timeLeft === 'Ended';
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <ArrowLeft size={20} color="#AAAAAA" />
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.content}>
-        <Text style={styles.title}>{challenge.title}</Text>
-        <Text style={styles.description}>{challenge.description}</Text>
-
-        <View style={styles.statsGrid}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Stake Required</Text>
-            <Text style={styles.statValue}>{challenge.stakeAmount} SOL</Text>
+        
+        <Text style={styles.headerTitle}>Challenge Details</Text>
+        
+        {isConnected && (
+          <View style={styles.balancePill}>
+            <View style={styles.greenDot} />
+            <Text style={styles.balanceText}>◎ {balance?.toFixed(3) || '0.000'}</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Participants</Text>
-            <Text style={styles.statValue}>{challenge.participants}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Prize Pool</Text>
-            <Text style={styles.statValue}>{challenge.prizePool.toFixed(2)} SOL</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Time Left</Text>
-            <Text style={styles.statValueWarning}>{formatTimeRemaining(challenge.deadline)}</Text>
-          </View>
-        </View>
-
-        {/* Payment Method Selector - SEEKER disabled with "Coming Soon" */}
-        <View style={styles.paymentSelector}>
-          <Text style={styles.sectionTitle}>Select Payment Method</Text>
-          <View style={styles.paymentOptions}>
-            <TouchableOpacity
-              style={[styles.paymentOption, paymentMethod === 'SOL' && styles.paymentOptionActive]}
-              onPress={() => setPaymentMethod('SOL')}
-            >
-              <Text style={[styles.paymentOptionText, paymentMethod === 'SOL' && styles.paymentOptionTextActive]}>
-                SOL
-              </Text>
-              {balance !== null && (
-                <Text style={styles.balanceText}>{balance.toFixed(4)} available</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.paymentOption, styles.paymentOptionDisabled]}
-              disabled={true}
-            >
-              <View style={styles.comingSoonBadge}>
-                <Text style={styles.comingSoonText}>COMING SOON</Text>
-              </View>
-              <Text style={[styles.paymentOptionText, styles.paymentOptionTextDisabled]}>
-                SEEKER
-              </Text>
-              <Text style={styles.balanceTextDisabled}>Multi-token support</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.rulesBox}>
-          <Text style={styles.rulesTitle}>📋 Challenge Rules</Text>
-          <Text style={styles.rulesText}>• Submit proof photo within the deadline</Text>
-          <Text style={styles.rulesText}>• Photo will be verified by community</Text>
-          <Text style={styles.rulesText}>• Winners split the prize pool equally</Text>
-          <Text style={styles.rulesText}>• Failed submissions forfeit stake</Text>
-        </View>
-
-        {hasJoined ? (
-          <View style={styles.joinedContainer}>
-            <Text style={styles.joinedText}>✓ You've Joined This Challenge!</Text>
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={() => navigation.navigate('Camera', {
-                challengeId: challenge.id,
-                challengeTitle: challenge.title,
-              })}
-            >
-              <Text style={styles.uploadButtonText}>📸 Upload Proof</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={[styles.joinButton, isJoining && styles.joinButtonDisabled]}
-            onPress={handleJoinChallenge}
-            disabled={isJoining}
-          >
-            {isJoining ? (
-              <ActivityIndicator color="#000000" />
-            ) : (
-              <Text style={styles.joinButtonText}>
-                Stake {challenge.stakeAmount} SOL & Join
-              </Text>
-            )}
-          </TouchableOpacity>
         )}
       </View>
-    </ScrollView>
+
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          
+          {/* Title Block */}
+          <Text style={styles.title}>{challenge.emoji} {challenge.title}</Text>
+          <Text style={styles.description}>{challenge.description}</Text>
+
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statBox}>
+              <View style={styles.statHeader}>
+                <Shield size={14} color="#14F195" />
+                <Text style={styles.statLabel}>STAKE</Text>
+              </View>
+              <Text style={styles.statValueGreen}>◎ {challenge.stakeAmount}</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <View style={styles.statHeader}>
+                <Users size={14} color="#9945FF" />
+                <Text style={styles.statLabel}>PLAYERS</Text>
+              </View>
+              <Text style={styles.statValuePurple}>{challenge.participants}</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <View style={styles.statHeader}>
+                <Trophy size={14} color="#FFD93D" />
+                <Text style={styles.statLabel}>PRIZE POOL</Text>
+              </View>
+              <Text style={styles.statValueGold}>◎ {challenge.prizePool}</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <View style={styles.statHeader}>
+                <Clock size={14} color={isEnded ? '#FF6B6B' : '#FF6B6B'} />
+                <Text style={styles.statLabel}>TIME LEFT</Text>
+              </View>
+              <Text style={styles.statValueRed}>{timeLeft}</Text>
+            </View>
+          </View>
+
+          {/* Payment Method */}
+          <View style={styles.paymentSection}>
+            <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
+            <View style={styles.paymentOptions}>
+              {/* SOL Option */}
+              <View style={styles.paymentOptionActive}>
+                <LinearGradient
+                  colors={['#9945FF', '#14F195']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.paymentIconGradient}
+                >
+                  <Text style={styles.paymentIconText}>◎</Text>
+                </LinearGradient>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentName}>SOL</Text>
+                  <Text style={styles.paymentBalance}>Balance: ◎ {balance?.toFixed(3) || '0.000'}</Text>
+                </View>
+                <CheckCircle size={20} color="#9945FF" />
+              </View>
+
+              {/* SKR Option (Disabled) */}
+              <View style={styles.paymentOptionDisabled}>
+                <View style={styles.paymentIconGrey}>
+                  <Text style={styles.paymentIconTextGrey}>S</Text>
+                </View>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentNameDisabled}>SKR</Text>
+                  <Text style={styles.paymentComingSoon}>COMING SOON</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Rules */}
+          <View style={styles.rulesBox}>
+            <Text style={styles.rulesLabel}>RULES</Text>
+            <Text style={styles.ruleText}>• Upload your proof photo within the time limit</Text>
+            <Text style={styles.ruleText}>• Photo must clearly show the completed challenge</Text>
+            <Text style={styles.ruleText}>• Stake is returned + reward upon verification</Text>
+            <Text style={styles.ruleText}>• No stake returned for failed/missing proof</Text>
+          </View>
+
+          {/* Vault Address */}
+          <View style={styles.vaultBox}>
+            <Text style={styles.vaultLabel}>VAULT ADDRESS (DEVNET)</Text>
+            <Text style={styles.vaultAddress}>WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8</Text>
+          </View>
+
+          {/* Join Button */}
+          {!hasJoined && (
+            <TouchableOpacity
+              style={styles.joinButton}
+              onPress={handleJoinChallenge}
+              disabled={isJoining || isEnded}
+            >
+              <LinearGradient
+                colors={['#9945FF', '#7928CA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.joinButtonGradient, (isJoining || isEnded) && styles.joinButtonDisabled]}
+              >
+                {isJoining ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.joinButtonText}>
+                    Stake ◎ {challenge.stakeAmount} & Join
+                  </Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -258,36 +298,72 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: '#141414',
+    paddingBottom: 16,
+    backgroundColor: '#0A0A0A',
     borderBottomWidth: 1,
     borderBottomColor: '#1F1F1F',
   },
   backButton: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#1F1F1F',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  backText: {
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+    marginLeft: 16,
+  },
+  balancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#1F1F1F',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  greenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#14F195',
+  },
+  balanceText: {
+    fontSize: 12,
+    fontWeight: 'bold',
     color: '#14F195',
-    fontSize: 16,
-    fontWeight: '600',
+  },
+  scrollContent: {
+    flex: 1,
   },
   content: {
     padding: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: '#FFFFFF',
     marginBottom: 12,
     letterSpacing: -0.5,
   },
   description: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#AAAAAA',
-    lineHeight: 24,
+    lineHeight: 22,
     marginBottom: 24,
   },
   statsGrid: {
@@ -298,161 +374,189 @@ const styles = StyleSheet.create({
   },
   statBox: {
     backgroundColor: '#141414',
-    padding: 16,
-    borderRadius: 12,
-    flex: 1,
-    minWidth: '45%',
     borderWidth: 1,
     borderColor: '#1F1F1F',
+    borderRadius: 16,
+    padding: 16,
+    flex: 1,
+    minWidth: '47%',
+  },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
   },
   statLabel: {
-    color: '#666666',
-    fontSize: 12,
-    marginBottom: 8,
-    textTransform: 'uppercase',
+    fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    color: '#555555',
+    letterSpacing: 1.5,
   },
-  statValue: {
+  statValueGreen: {
+    fontSize: 20,
+    fontWeight: '900',
     color: '#14F195',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
-  statValueWarning: {
+  statValuePurple: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#9945FF',
+  },
+  statValueGold: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFD93D',
+  },
+  statValueRed: {
+    fontSize: 20,
+    fontWeight: '900',
     color: '#FF6B6B',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
-  paymentSelector: {
+  paymentSection: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#555555',
+    letterSpacing: 1.5,
     marginBottom: 12,
   },
   paymentOptions: {
-    flexDirection: 'row',
     gap: 12,
   },
-  paymentOption: {
-    flex: 1,
-    backgroundColor: '#141414',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#1F1F1F',
-    alignItems: 'center',
-  },
   paymentOptionActive: {
-    borderColor: '#14F195',
-    backgroundColor: 'rgba(20, 241, 149, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderWidth: 2,
+    borderColor: '#9945FF',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
   },
   paymentOptionDisabled: {
-    opacity: 0.6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0D0D0D',
+    borderWidth: 2,
     borderColor: '#1F1F1F',
     borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    opacity: 0.5,
   },
-  paymentOptionText: {
-    color: '#AAAAAA',
-    fontSize: 16,
+  paymentIconGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentIconText: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
+    color: '#FFFFFF',
   },
-  paymentOptionTextActive: {
+  paymentIconGrey: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1F1F1F',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentIconTextGrey: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666666',
+  },
+  paymentInfo: {
+    flex: 1,
+  },
+  paymentName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  paymentBalance: {
+    fontSize: 12,
     color: '#14F195',
   },
-  paymentOptionTextDisabled: {
-    color: '#666666',
-  },
-  balanceText: {
-    color: '#666666',
-    fontSize: 11,
-    marginTop: 4,
-  },
-  balanceTextDisabled: {
-    color: '#444444',
-    fontSize: 10,
-    marginTop: 4,
-  },
-  comingSoonBadge: {
-    backgroundColor: '#9945FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 6,
-  },
-  comingSoonText: {
-    color: '#FFFFFF',
-    fontSize: 9,
+  paymentNameDisabled: {
+    fontSize: 14,
     fontWeight: 'bold',
-    letterSpacing: 0.5,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  paymentComingSoon: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#444444',
+    letterSpacing: 1.5,
   },
   rulesBox: {
-    backgroundColor: '#141414',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#1F1F1F',
+    backgroundColor: '#0D0D0D',
     borderLeftWidth: 4,
     borderLeftColor: '#9945FF',
-  },
-  rulesTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  rulesText: {
-    color: '#AAAAAA',
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 6,
-  },
-  joinButton: {
-    backgroundColor: '#14F195',
-    paddingVertical: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#14F195',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  joinButtonDisabled: {
-    opacity: 0.6,
-  },
-  joinButtonText: {
-    color: '#000000',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  joinedContainer: {
-    alignItems: 'center',
-  },
-  joinedText: {
-    color: '#14F195',
-    fontSize: 18,
-    fontWeight: 'bold',
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+    padding: 16,
     marginBottom: 16,
   },
-  uploadButton: {
-    backgroundColor: '#9945FF',
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 16,
-    shadowColor: '#9945FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+  rulesLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#AAAAAA',
+    letterSpacing: 1.5,
+    marginBottom: 12,
   },
-  uploadButtonText: {
-    color: '#FFFFFF',
+  ruleText: {
+    fontSize: 14,
+    color: '#888888',
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  vaultBox: {
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#1F1F1F',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 24,
+  },
+  vaultLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#444444',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  vaultAddress: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: '#555555',
+  },
+  joinButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 40,
+  },
+  joinButtonGradient: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  joinButtonDisabled: {
+    opacity: 0.4,
+  },
+  joinButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 });
