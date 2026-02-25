@@ -20,6 +20,7 @@ interface CreatedChallenge {
   maxParticipants: number;
   duration: string;
   createdAt: Date;
+  coverImage: string | null;
 }
 
 interface WalletContextType {

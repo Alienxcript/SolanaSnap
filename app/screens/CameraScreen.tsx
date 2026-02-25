@@ -30,10 +30,33 @@ export const CameraScreen = ({ route, navigation }: any) => {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={styles.permissionText}>We need camera permission</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.permissionContainer}>
+          <LinearGradient
+            colors={['#9945FF', '#14F195']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.permissionIconContainer}
+          >
+            <Camera size={28} color="#FFFFFF" />
+          </LinearGradient>
+          
+          <Text style={styles.permissionTitle}>Camera Access Required</Text>
+          <Text style={styles.permissionDescription}>
+            We need camera permission to capture your challenge proof photos.
+          </Text>
+          
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <LinearGradient
+              colors={['#9945FF', '#7928CA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.permissionButtonGradient}
+            >
+              <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -311,20 +334,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555555',
   },
-  permissionText: {
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  permissionIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  permissionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#FFFFFF',
-    fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  permissionDescription: {
+    fontSize: 15,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
   },
   permissionButton: {
-    backgroundColor: '#14F195',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    width: '100%',
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  permissionButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   permissionButtonText: {
-    color: '#000000',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });

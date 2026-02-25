@@ -47,6 +47,18 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
   ];
 
   const pickImage = async () => {
+    // Request permission first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Please grant photo library access to upload a cover image.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -69,42 +81,112 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
       return;
     }
 
+    const prizePoolAmount = parseFloat(prizePool) || 0;
+    const estimatedGasFee = 0.000005; // ~5000 lamports
+    const totalRequired = prizePoolAmount + estimatedGasFee;
+
+    // Check if user has enough balance
+    if (balance === null || balance < totalRequired) {
+      Alert.alert(
+        'Insufficient Balance',
+        `You need at least ◎${totalRequired.toFixed(6)} SOL (◎${prizePoolAmount} prize pool + ◎${estimatedGasFee.toFixed(6)} gas fee).\n\nYour balance: ◎${balance?.toFixed(6) || '0'}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setIsPublishing(true);
-    
-    // Create challenge object
-    const newChallenge = {
-      id: Date.now().toString(),
-      emoji: title.match(/[\u{1F300}-\u{1F9FF}]/u)?.[0] || '🎯',
-      title: title.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim(),
-      description,
-      stakeAmount: parseFloat(stakeAmount) || 0.05,
-      prizePool: parseFloat(prizePool) || 0.5,
-      maxParticipants: parseInt(maxParticipants) || 50,
-      duration,
-      createdAt: new Date(),
-    };
-    
-    // Simulate API call
-    setTimeout(() => {
-      // Save to context
-      addCreatedChallenge(newChallenge);
-      
+
+    try {
+      // Import required modules
+      const { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = require('@solana/web3.js');
+      const { transact } = require('@solana-mobile/mobile-wallet-adapter-protocol-web3js');
+      const connection = new (require('@solana/web3.js')).Connection('https://api.devnet.solana.com', 'confirmed');
+      const CHALLENGE_VAULT = new PublicKey('WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8');
+
+      await transact(async (wallet) => {
+        const authResult = await wallet.authorize({
+          cluster: 'devnet',
+          identity: {
+            name: 'SolSnap',
+            uri: 'https://solsnap.app',
+            icon: 'favicon.ico',
+          },
+        });
+
+        const userPubkey = new PublicKey(authResult.accounts[0].address);
+        const latestBlockhash = await connection.getLatestBlockhash();
+
+        const transaction = new Transaction();
+        transaction.feePayer = userPubkey;
+        transaction.recentBlockhash = latestBlockhash.blockhash;
+
+        // Transfer prize pool to vault
+        transaction.add(
+          SystemProgram.transfer({
+            fromPubkey: userPubkey,
+            toPubkey: CHALLENGE_VAULT,
+            lamports: Math.floor(prizePoolAmount * LAMPORTS_PER_SOL),
+          })
+        );
+
+        const result = await wallet.signAndSendTransactions({
+          transactions: [transaction],
+          minContextSlot: latestBlockhash.lastValidBlockHeight - 150,
+        });
+
+        await connection.confirmTransaction({
+          signature: result[0],
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        });
+
+        // Create challenge object
+        const newChallenge = {
+          id: Date.now().toString(),
+          emoji: title.match(/[\u{1F300}-\u{1F9FF}]/u)?.[0] || '🎯',
+          title: title.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim(),
+          description,
+          stakeAmount: parseFloat(stakeAmount) || 0.05,
+          prizePool: prizePoolAmount,
+          maxParticipants: parseInt(maxParticipants) || 50,
+          duration,
+          createdAt: new Date(),
+          coverImage: coverImage || null,
+        };
+
+        // Save to context
+        addCreatedChallenge(newChallenge);
+
+        setIsPublishing(false);
+        setShowSuccess(true);
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          setShowSuccess(false);
+          setCoverImage(null);
+          setTitle('');
+          setDescription('');
+          setDuration('24h');
+          setStakeAmount('0.05');
+          setprizePool('0.5');
+          setMaxParticipants('50');
+          navigation.navigate('Profile');
+        }, 2000);
+      });
+    } catch (error: any) {
       setIsPublishing(false);
-      setShowSuccess(true);
-      
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        setShowSuccess(false); // Reset state before navigating
-        setCoverImage(null);
-        setTitle('');
-        setDescription('');
-        setDuration('24h');
-        setStakeAmount('0.05');
-        setprizePool('0.5');
-        setMaxParticipants('50');
-        navigation.navigate('Profile');
-      }, 2000);
-    }, 1500);
+      console.error('Challenge creation error:', error);
+
+      let errorMsg = 'Failed to create challenge.';
+      if (error?.code === 'ERROR_AUTHORIZATION_FAILED') {
+        errorMsg = 'You cancelled the transaction.';
+      } else if (error?.message) {
+        errorMsg = error.message;
+      }
+
+      Alert.alert('Error', errorMsg, [{ text: 'OK' }]);
+    }
   };
 
   // Not connected state

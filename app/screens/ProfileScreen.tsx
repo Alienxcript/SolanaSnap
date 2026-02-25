@@ -1,10 +1,10 @@
 // app/screens/ProfileScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Image } from 'react-native';
 import { useWallet, formatPublicKey } from '../contexts/WalletContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LogOut, Flame, CheckCircle, Trophy, TrendingUp, Clock, Camera } from 'lucide-react-native';
+import { LogOut, Flame, CheckCircle, Trophy, TrendingUp, Clock, Camera, Wallet, Home, Users } from 'lucide-react-native';
 
 interface JoinedChallenge {
   id: string;
@@ -99,10 +99,12 @@ export const ProfileScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-      </View>
+      {/* Header - Only show when connected */}
+      {isConnected && (
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {isConnected ? (
@@ -215,9 +217,31 @@ export const ProfileScreen = ({ navigation }: any) => {
               ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyIconText}>🎯</Text>
+                  <View style={styles.emptyIconContainer}>
+                    <LinearGradient
+                      colors={['#9945FF', '#7928CA']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.emptyIconGradient}
+                    >
+                      <Home size={32} color="#FFFFFF" />
+                    </LinearGradient>
+                  </View>
                   <Text style={styles.emptyTitle}>No challenges joined yet</Text>
-                  <Text style={styles.emptyDescription}>Join a challenge from the Home tab!</Text>
+                  <Text style={styles.emptyDescription}>Browse and join challenges from the Home tab!</Text>
+                  <TouchableOpacity 
+                    style={styles.createButton}
+                    onPress={() => navigation.navigate('Home')}
+                  >
+                    <LinearGradient
+                      colors={['#9945FF', '#7928CA']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.createButtonGradient}
+                    >
+                      <Text style={styles.createButtonText}>Browse Challenges</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -238,30 +262,49 @@ export const ProfileScreen = ({ navigation }: any) => {
                 createdChallenges.map((challenge) => (
                   <TouchableOpacity
                     key={challenge.id}
-                    style={styles.challengeCard}
+                    style={styles.createdChallengeCard}
                     onPress={() => navigation.navigate('Home', {
                       screen: 'HomeMain',
                       params: { createdChallengeId: challenge.id }
                     })}
                     activeOpacity={0.85}
                   >
-                    <View style={styles.challengeHeader}>
-                      <Text style={styles.challengeTitle}>{challenge.emoji} {challenge.title}</Text>
-                      <View style={styles.stakeBadge}>
-                        <Text style={styles.stakeBadgeText}>◎ {challenge.stakeAmount} SOL</Text>
+                    {/* Cover Image */}
+                    {challenge.coverImage && (
+                      <Image 
+                        source={{ uri: challenge.coverImage }} 
+                        style={styles.createdChallengeCover}
+                      />
+                    )}
+                    
+                    <View style={styles.createdChallengeContent}>
+                      <View style={styles.challengeHeader}>
+                        <Text style={styles.challengeTitle}>{challenge.emoji} {challenge.title}</Text>
+                        <View style={styles.stakeBadge}>
+                          <Text style={styles.stakeBadgeText}>◎ {challenge.stakeAmount} SOL</Text>
+                        </View>
                       </View>
-                    </View>
 
-                    <Text style={styles.challengeDescription} numberOfLines={2}>{challenge.description}</Text>
+                      <Text style={styles.challengeDescription} numberOfLines={2}>{challenge.description}</Text>
 
-                    <View style={styles.challengeInfo}>
-                      <View style={styles.infoItem}>
-                        <Text style={styles.infoLabel}>Prize Pool</Text>
-                        <Text style={styles.infoValue}>◎ {challenge.prizePool}</Text>
-                      </View>
-                      <View style={styles.infoItem}>
-                        <Text style={styles.infoLabel}>Duration</Text>
-                        <Text style={styles.infoValue}>{challenge.duration === '7days' ? '7 days' : challenge.duration}</Text>
+                      <View style={styles.createdChallengeStats}>
+                        <View style={styles.createdChallengeStat}>
+                          <Trophy size={14} color="#FFD93D" />
+                          <Text style={styles.createdChallengeStatLabel}>Prize Pool</Text>
+                          <Text style={styles.createdChallengeStatValue}>◎ {challenge.prizePool}</Text>
+                        </View>
+                        <View style={styles.createdChallengeStat}>
+                          <Clock size={14} color="#9945FF" />
+                          <Text style={styles.createdChallengeStatLabel}>Duration</Text>
+                          <Text style={styles.createdChallengeStatValue}>
+                            {challenge.duration === '7days' ? '7 days' : challenge.duration}
+                          </Text>
+                        </View>
+                        <View style={styles.createdChallengeStat}>
+                          <Users size={14} color="#14F195" />
+                          <Text style={styles.createdChallengeStatLabel}>Max Players</Text>
+                          <Text style={styles.createdChallengeStatValue}>{challenge.maxParticipants}</Text>
+                        </View>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -291,14 +334,14 @@ export const ProfileScreen = ({ navigation }: any) => {
             </View>
           </>
         ) : (
-          <View style={styles.notConnectedContainer}>
+          <View style={styles.notConnectedFullscreen}>
             <LinearGradient
               colors={['#9945FF', '#14F195']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.walletIconContainer}
             >
-              <Text style={styles.notConnectedEmoji}>👛</Text>
+              <Wallet size={28} color="#FFFFFF" />
             </LinearGradient>
             
             <Text style={styles.notConnectedTitle}>Connect Your Wallet</Text>
@@ -629,12 +672,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  notConnectedContainer: {
+  notConnectedFullscreen: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
-    paddingTop: 60,
   },
   walletIconContainer: {
     width: 64,
@@ -643,9 +685,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-  },
-  notConnectedEmoji: {
-    fontSize: 28,
   },
   notConnectedTitle: {
     fontSize: 24,
@@ -674,5 +713,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  createdChallengeCard: {
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#1F1F1F',
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  createdChallengeCover: {
+    width: '100%',
+    height: 140,
+  },
+  createdChallengeContent: {
+    padding: 16,
+  },
+  createdChallengeStats: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  createdChallengeStat: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#0D0D0D',
+    padding: 8,
+    borderRadius: 8,
+  },
+  createdChallengeStatLabel: {
+    fontSize: 9,
+    color: '#666666',
+    flex: 1,
+  },
+  createdChallengeStatValue: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  emptyIconContainer: {
+    marginBottom: 16,
+  },
+  emptyIconGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
