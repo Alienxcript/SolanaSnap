@@ -10,6 +10,7 @@ const AUTH_TOKEN_KEY = '@solsnap_auth_token';
 const JOINED_CHALLENGES_KEY = '@solsnap_joined_challenges';
 const CREATED_CHALLENGES_KEY = '@solsnap_created_challenges';
 const PUBLIC_KEY_KEY = '@solsnap_public_key';
+const PROOF_SUBMITTED_KEY = '@solsnap_proof_submitted';
 
 interface CreatedChallenge {
   id: string;
@@ -32,11 +33,13 @@ interface WalletContextType {
   authToken: string | null;
   joinedChallenges: Set<string>;
   createdChallenges: CreatedChallenge[];
+  proofSubmitted: Set<string>;
   connect: () => Promise<void>;
   disconnect: () => void;
   addJoinedChallenge: (challengeId: string) => void;
   removeJoinedChallenge: (challengeId: string) => void;
   addCreatedChallenge: (challenge: CreatedChallenge) => void;
+  markProofSubmitted: (challengeId: string) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -48,6 +51,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
   const [createdChallenges, setCreatedChallenges] = useState<CreatedChallenge[]>([]);
+  const [proofSubmitted, setProofSubmitted] = useState<Set<string>>(new Set());
 
   // Load auth token and joined challenges on mount
   useEffect(() => {
@@ -81,6 +85,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           }));
           setCreatedChallenges(withDates);
           console.log('✅ Loaded created challenges');
+        }
+
+        const proofSubmittedData = await AsyncStorage.getItem(PROOF_SUBMITTED_KEY);
+        if (proofSubmittedData) {
+          setProofSubmitted(new Set(JSON.parse(proofSubmittedData)));
+          console.log('✅ Loaded proof submitted data');
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -202,6 +212,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const markProofSubmitted = useCallback(async (challengeId: string) => {
+    setProofSubmitted(prev => {
+      const newSet = new Set(prev);
+      newSet.add(challengeId);
+      AsyncStorage.setItem(PROOF_SUBMITTED_KEY, JSON.stringify(Array.from(newSet)));
+      return newSet;
+    });
+  }, []);
+
   return (
     <WalletContext.Provider
       value={{
@@ -212,11 +231,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         authToken,
         joinedChallenges,
         createdChallenges,
+        proofSubmitted,
         connect,
         disconnect,
         addJoinedChallenge,
         removeJoinedChallenge,
         addCreatedChallenge,
+        markProofSubmitted,
       }}
     >
       {children}

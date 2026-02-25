@@ -78,6 +78,25 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
     setCoverImage(null);
   };
 
+  // Validate numeric inputs (only numbers and single decimal point)
+  const validateNumericInput = (value: string): string => {
+    // Remove all non-numeric characters except decimal point
+    let cleaned = value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      cleaned = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    return cleaned;
+  };
+
+  const validateIntegerInput = (value: string): string => {
+    // Remove all non-numeric characters
+    return value.replace(/[^0-9]/g, '');
+  };
+
   const handlePublish = async () => {
     if (!title.trim()) {
       Alert.alert('Missing Title', 'Please enter a challenge title');
@@ -85,6 +104,25 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
     }
 
     const prizePoolAmount = parseFloat(prizePool) || 0;
+    const stakeAmountNum = parseFloat(stakeAmount) || 0;
+    const maxParticipantsNum = parseInt(maxParticipants) || 0;
+
+    // Validate inputs
+    if (stakeAmountNum <= 0) {
+      Alert.alert('Invalid Stake', 'Please enter a valid stake amount greater than 0');
+      return;
+    }
+
+    if (prizePoolAmount <= 0) {
+      Alert.alert('Invalid Prize Pool', 'Please enter a valid prize pool amount greater than 0');
+      return;
+    }
+
+    if (maxParticipantsNum <= 0) {
+      Alert.alert('Invalid Max Participants', 'Please enter a valid number of participants (at least 1)');
+      return;
+    }
+
     const estimatedGasFee = 0.000005; // ~5000 lamports
     const totalRequired = prizePoolAmount + estimatedGasFee;
 
@@ -428,9 +466,10 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
                   <TextInput
                     style={styles.inputWithPrefixField}
                     value={stakeAmount}
-                    onChangeText={setStakeAmount}
+                    onChangeText={(text) => setStakeAmount(validateNumericInput(text))}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#333333"
+                    placeholder="0.05"
                   />
                 </View>
               </View>
@@ -445,9 +484,10 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
                   <TextInput
                     style={styles.inputWithPrefixField}
                     value={prizePool}
-                    onChangeText={setprizePool}
+                    onChangeText={(text) => setprizePool(validateNumericInput(text))}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#333333"
+                    placeholder="0.5"
                   />
                 </View>
               </View>
@@ -463,9 +503,10 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
             <TextInput
               style={styles.input}
               value={maxParticipants}
-              onChangeText={setMaxParticipants}
+              onChangeText={(text) => setMaxParticipants(validateIntegerInput(text))}
               keyboardType="number-pad"
               placeholderTextColor="#333333"
+              placeholder="50"
             />
           </View>
 

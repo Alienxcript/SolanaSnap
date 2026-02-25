@@ -13,9 +13,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Image as ImageIcon, Camera, CheckCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useWallet } from '../contexts/WalletContext';
 
 export const CameraScreen = ({ route, navigation }: any) => {
   const { challengeId, challengeTitle } = route.params || {};
+  const { markProofSubmitted } = useWallet();
   const [facing] = useState<'front' | 'back'>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
@@ -91,6 +93,11 @@ export const CameraScreen = ({ route, navigation }: any) => {
     setTimeout(() => {
       setIsSubmitting(false);
       setShowSuccess(true);
+      
+      // Mark proof as submitted
+      if (challengeId) {
+        markProofSubmitted(challengeId);
+      }
       
       // Wait 1.5s then navigate back to Profile
       setTimeout(() => {

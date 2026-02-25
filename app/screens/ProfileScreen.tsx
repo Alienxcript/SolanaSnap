@@ -28,7 +28,7 @@ interface CreatedChallenge {
 }
 
 export const ProfileScreen = ({ navigation }: any) => {
-  const { publicKey, isConnected, balance, connect, disconnect, joinedChallenges, createdChallenges } = useWallet();
+  const { publicKey, isConnected, balance, connect, disconnect, joinedChallenges, createdChallenges, proofSubmitted } = useWallet();
 
   // All available challenges (should match HomeScreen)
   const allChallenges: JoinedChallenge[] = [
@@ -189,28 +189,37 @@ export const ProfileScreen = ({ navigation }: any) => {
                       <Clock size={14} color="#666666" />
                       <Text style={styles.challengeInfoText}>{formatTimeRemaining(challenge.deadline)}</Text>
                     </View>
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusBadgeText}>Needs Proof</Text>
-                    </View>
+                    {proofSubmitted.has(challenge.id) ? (
+                      <View style={styles.statusBadgeSubmitted}>
+                        <CheckCircle size={12} color="#14F195" />
+                        <Text style={styles.statusBadgeTextSubmitted}>Submitted</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.statusBadge}>
+                        <Text style={styles.statusBadgeText}>Needs Proof</Text>
+                      </View>
+                    )}
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.uploadButton}
-                    onPress={() => navigation.navigate('Camera', {
-                      challengeId: challenge.id,
-                      challengeTitle: challenge.title,
-                    })}
-                  >
-                    <LinearGradient
-                      colors={['#14F195', '#0EA97F']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.uploadButtonGradient}
+                  {!proofSubmitted.has(challenge.id) && (
+                    <TouchableOpacity
+                      style={styles.uploadButton}
+                      onPress={() => navigation.navigate('Camera', {
+                        challengeId: challenge.id,
+                        challengeTitle: challenge.title,
+                      })}
                     >
-                      <Camera size={16} color="#000000" />
-                      <Text style={styles.uploadButtonText}>Upload Proof</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={['#14F195', '#0EA97F']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.uploadButtonGradient}
+                      >
+                        <Camera size={16} color="#000000" />
+                        <Text style={styles.uploadButtonText}>Upload Proof</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))
               ) : (
@@ -608,6 +617,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: '#FF6B6B',
+  },
+  statusBadgeSubmitted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(20, 241, 149, 0.15)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusBadgeTextSubmitted: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#14F195',
   },
   uploadButton: {
     borderRadius: 10,
