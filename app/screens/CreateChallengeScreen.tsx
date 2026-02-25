@@ -26,7 +26,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useWallet } from '../contexts/WalletContext';
 
 export const CreateChallengeScreen = ({ navigation }: any) => {
-  const { isConnected, balance, connect } = useWallet();
+  const { isConnected, balance, connect, addCreatedChallenge } = useWallet();
   
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -71,8 +71,24 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
 
     setIsPublishing(true);
     
+    // Create challenge object
+    const newChallenge = {
+      id: Date.now().toString(),
+      emoji: title.match(/[\u{1F300}-\u{1F9FF}]/u)?.[0] || '🎯',
+      title: title.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim(),
+      description,
+      stakeAmount: parseFloat(stakeAmount) || 0.05,
+      prizePool: parseFloat(prizePool) || 0.5,
+      maxParticipants: parseInt(maxParticipants) || 50,
+      duration,
+      createdAt: new Date(),
+    };
+    
     // Simulate API call
     setTimeout(() => {
+      // Save to context
+      addCreatedChallenge(newChallenge);
+      
       setIsPublishing(false);
       setShowSuccess(true);
       
@@ -86,7 +102,7 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
         setStakeAmount('0.05');
         setprizePool('0.5');
         setMaxParticipants('50');
-        navigation.navigate('Home');
+        navigation.navigate('Profile');
       }, 2000);
     }, 1500);
   };

@@ -10,6 +10,7 @@ import {
   StatusBar,
   Modal,
   Pressable,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -202,14 +203,10 @@ export const HomeScreen = ({ navigation }: any) => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <LinearGradient
-            colors={['#9945FF', '#14F195']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logoGradient}
-          >
-            <Text style={styles.logoText}>S</Text>
-          </LinearGradient>
+          <Image 
+            source={require('../../assets/icon.png')} 
+            style={styles.appIcon}
+          />
           <Text style={styles.headerTitle}>SolSnap</Text>
         </View>
         
@@ -307,17 +304,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  logoGradient: {
-    width: 28,
-    height: 28,
+  appIcon: {
+    width: 32,
+    height: 32,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   headerTitle: { 
     fontSize: 22, 

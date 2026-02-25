@@ -28,8 +28,7 @@ interface CreatedChallenge {
 }
 
 export const ProfileScreen = ({ navigation }: any) => {
-  const { publicKey, isConnected, balance, connect, disconnect, joinedChallenges } = useWallet();
-  const [createdChallenges, setCreatedChallenges] = useState<CreatedChallenge[]>([]);
+  const { publicKey, isConnected, balance, connect, disconnect, joinedChallenges, createdChallenges } = useWallet();
 
   // All available challenges (should match HomeScreen)
   const allChallenges: JoinedChallenge[] = [
@@ -82,25 +81,6 @@ export const ProfileScreen = ({ navigation }: any) => {
 
   // Filter to only show joined challenges
   const userJoinedChallenges = allChallenges.filter(c => joinedChallenges.has(c.id));
-
-  const loadCreatedChallenges = () => {
-    const mockCreated: CreatedChallenge[] = [];
-    setCreatedChallenges(mockCreated);
-  };
-
-  useEffect(() => {
-    if (isConnected) {
-      loadCreatedChallenges();
-    }
-  }, [isConnected]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      if (isConnected) {
-        loadCreatedChallenges();
-      }
-    }, [isConnected, joinedChallenges])
-  );
 
   const formatTimeRemaining = (deadline: Date): string => {
     const now = new Date();
@@ -256,9 +236,35 @@ export const ProfileScreen = ({ navigation }: any) => {
 
               {createdChallenges.length > 0 ? (
                 createdChallenges.map((challenge) => (
-                  <View key={challenge.id} style={styles.challengeCard}>
-                    <Text style={styles.challengeTitle}>{challenge.title}</Text>
-                  </View>
+                  <TouchableOpacity
+                    key={challenge.id}
+                    style={styles.challengeCard}
+                    onPress={() => navigation.navigate('Home', {
+                      screen: 'HomeMain',
+                      params: { createdChallengeId: challenge.id }
+                    })}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.challengeHeader}>
+                      <Text style={styles.challengeTitle}>{challenge.emoji} {challenge.title}</Text>
+                      <View style={styles.stakeBadge}>
+                        <Text style={styles.stakeBadgeText}>◎ {challenge.stakeAmount} SOL</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.challengeDescription} numberOfLines={2}>{challenge.description}</Text>
+
+                    <View style={styles.challengeInfo}>
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Prize Pool</Text>
+                        <Text style={styles.infoValue}>◎ {challenge.prizePool}</Text>
+                      </View>
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Duration</Text>
+                        <Text style={styles.infoValue}>{challenge.duration === '7days' ? '7 days' : challenge.duration}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 ))
               ) : (
                 <View style={styles.emptyState}>
@@ -286,12 +292,23 @@ export const ProfileScreen = ({ navigation }: any) => {
           </>
         ) : (
           <View style={styles.notConnectedContainer}>
-            <Text style={styles.notConnectedEmoji}>👛</Text>
-            <Text style={styles.notConnectedTitle}>No Wallet Connected</Text>
-            <Text style={styles.notConnectedDescription}>Connect your wallet to view your profile</Text>
+            <LinearGradient
+              colors={['#9945FF', '#14F195']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.walletIconContainer}
+            >
+              <Text style={styles.notConnectedEmoji}>👛</Text>
+            </LinearGradient>
+            
+            <Text style={styles.notConnectedTitle}>Connect Your Wallet</Text>
+            <Text style={styles.notConnectedDescription}>
+              Connect your Solana wallet to view your profile, track challenges, and manage your stats.
+            </Text>
+            
             <TouchableOpacity style={styles.connectButton} onPress={connect}>
               <LinearGradient
-                colors={['#14F195', '#0EA97F']}
+                colors={['#9945FF', '#7928CA']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.connectButtonGradient}
@@ -507,6 +524,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     flex: 1,
   },
+  challengeDescription: {
+    fontSize: 13,
+    color: '#AAAAAA',
+    lineHeight: 19,
+    marginBottom: 12,
+  },
   stakeBadge: {
     backgroundColor: '#14F195',
     borderRadius: 8,
@@ -611,22 +634,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
-    paddingTop: 100,
+    paddingTop: 60,
+  },
+  walletIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   notConnectedEmoji: {
-    fontSize: 64,
-    marginBottom: 20,
+    fontSize: 28,
   },
   notConnectedTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   notConnectedDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#666666',
     textAlign: 'center',
+    lineHeight: 22,
     marginBottom: 32,
   },
   connectButton: {
@@ -641,6 +673,6 @@ const styles = StyleSheet.create({
   connectButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
+    color: '#FFFFFF',
   },
 });

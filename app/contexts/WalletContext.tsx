@@ -8,6 +8,19 @@ const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
 const AUTH_TOKEN_KEY = '@solsnap_auth_token';
 const JOINED_CHALLENGES_KEY = '@solsnap_joined_challenges';
+const CREATED_CHALLENGES_KEY = '@solsnap_created_challenges';
+
+interface CreatedChallenge {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+  stakeAmount: number;
+  prizePool: number;
+  maxParticipants: number;
+  duration: string;
+  createdAt: Date;
+}
 
 interface WalletContextType {
   publicKey: string | null;
@@ -16,10 +29,12 @@ interface WalletContextType {
   isConnecting: boolean;
   authToken: string | null;
   joinedChallenges: Set<string>;
+  createdChallenges: CreatedChallenge[];
   connect: () => Promise<void>;
   disconnect: () => void;
   addJoinedChallenge: (challengeId: string) => void;
   removeJoinedChallenge: (challengeId: string) => void;
+  addCreatedChallenge: (challenge: CreatedChallenge) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -30,6 +45,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
+  const [createdChallenges, setCreatedChallenges] = useState<CreatedChallenge[]>([]);
 
   // Load auth token and joined challenges on mount
   useEffect(() => {
@@ -45,6 +61,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         if (joined) {
           setJoinedChallenges(new Set(JSON.parse(joined)));
           console.log('✅ Loaded joined challenges');
+        }
+
+        const created = await AsyncStorage.getItem(CREATED_CHALLENGES_KEY);
+        if (created) {
+          const parsedCreated = JSON.parse(created);
+          // Convert date strings back to Date objects
+          const withDates = parsedCreated.map((c: any) => ({
+            ...c,
+            createdAt: new Date(c.createdAt),
+          }));
+          setCreatedChallenges(withDates);
+          console.log('✅ Loaded created challenges');
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -153,6 +181,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const addCreatedChallenge = useCallback(async (challenge: CreatedChallenge) => {
+    setCreatedChallenges(prev => {
+      const newList = [challenge, ...prev];
+      AsyncStorage.setItem(CREATED_CHALLENGES_KEY, JSON.stringify(newList));
+      return newList;
+    });
+  }, []);
+
   return (
     <WalletContext.Provider
       value={{
@@ -162,10 +198,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         isConnecting,
         authToken,
         joinedChallenges,
+        createdChallenges,
         connect,
         disconnect,
         addJoinedChallenge,
         removeJoinedChallenge,
+        addCreatedChallenge,
       }}
     >
       {children}
