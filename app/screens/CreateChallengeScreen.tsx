@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -21,6 +23,7 @@ import {
   Users, 
   Wallet,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useWallet } from '../contexts/WalletContext';
@@ -37,6 +40,8 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
   const [maxParticipants, setMaxParticipants] = useState('50');
   const [isPublishing, setIsPublishing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState({ title: '', description: '' });
 
   const durationOptions = [
     { label: '6 hours', value: '6h' },
@@ -128,11 +133,11 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
 
     // Check if user has enough balance
     if (balance === null || balance < totalRequired) {
-      Alert.alert(
-        'Insufficient Balance',
-        `You need at least ◎${totalRequired.toFixed(6)} SOL (◎${prizePoolAmount} prize pool + ◎${estimatedGasFee.toFixed(6)} gas fee).\n\nYour balance: ◎${balance?.toFixed(6) || '0'}`,
-        [{ text: 'OK' }]
-      );
+      setErrorMessage({
+        title: 'Insufficient Balance',
+        description: `You need at least ◎${totalRequired.toFixed(6)} SOL (◎${prizePoolAmount} prize pool + ◎${estimatedGasFee.toFixed(6)} gas fee).\n\nYour balance: ◎${balance?.toFixed(6) || '0'}`
+      });
+      setShowErrorModal(true);
       return;
     }
 
@@ -560,6 +565,39 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
 
         </View>
       </ScrollView>
+
+      {/* Error Modal */}
+      <Modal
+        visible={showErrorModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowErrorModal(false)}>
+          <View style={styles.errorModalContent}>
+            <TouchableOpacity 
+              style={styles.modalClose}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <X size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            <View style={styles.errorIcon}>
+              <AlertCircle size={48} color="#FF6B6B" />
+            </View>
+            
+            <Text style={styles.errorTitle}>{errorMessage.title}</Text>
+            <Text style={styles.errorDescription}>{errorMessage.description}</Text>
+            
+            <TouchableOpacity 
+              style={styles.errorButton}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.errorButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -861,5 +899,69 @@ const styles = StyleSheet.create({
   successDescription: {
     fontSize: 14,
     color: '#555555',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorModalContent: {
+    backgroundColor: '#141414',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1F1F1F',
+    padding: 32,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1F1F1F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  errorIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorDescription: {
+    fontSize: 14,
+    color: '#AAAAAA',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  errorButton: {
+    width: '100%',
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  errorButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
