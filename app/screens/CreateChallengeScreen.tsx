@@ -259,20 +259,20 @@ export const CreateChallengeScreen = ({ navigation }: any) => {
         
         addCreatedChallenge(newChallenge);
         
-        Alert.alert(
-          'Challenge Created!',
-          'Your challenge was created successfully.',
-          [{ text: 'OK', onPress: () => {
-            setCoverImage(null);
-            setTitle('');
-            setDescription('');
-            setDuration('24h');
-            setStakeAmount('0.05');
-            setprizePool('0.5');
-            setMaxParticipants('50');
-            navigation.navigate('Profile');
-          }}]
-        );
+        setIsPublishing(false);
+        setShowSuccess(true);
+        
+        setTimeout(() => {
+          setShowSuccess(false);
+          setCoverImage(null);
+          setTitle('');
+          setDescription('');
+          setDuration('24h');
+          setStakeAmount('0.05');
+          setprizePool('0.5');
+          setMaxParticipants('50');
+          navigation.navigate('Profile');
+        }, 1500);
         return;
       }
 

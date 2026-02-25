@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   ScrollView,
   StatusBar,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -18,6 +20,7 @@ import {
   Trophy, 
   Clock,
   CheckCircle,
+  X,
 } from 'lucide-react-native';
 import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
@@ -40,6 +43,8 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
   const [hasJoined, setHasJoined] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [paymentMethod] = useState<'SOL' | 'SKR'>('SOL');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState({ title: '', description: '' });
 
   const CHALLENGE_VAULT = new PublicKey('WTCyq1nqnpmMaha3MxpQEstauF3t4jeezX6PvvQivd8');
   const connection = new (require('@solana/web3.js')).Connection('https://api.devnet.solana.com', 'confirmed');
@@ -128,11 +133,11 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           onJoinSuccess(challenge.id);
         }
         
-        Alert.alert(
-          'Success! 🎉',
-          `You've staked ${requiredAmount} SOL!`,
-          [{ text: 'OK' }]
-        );
+        setSuccessMessage({
+          title: 'Success! 🎉',
+          description: `You've staked ${requiredAmount} SOL and joined the challenge!`
+        });
+        setShowSuccessModal(true);
       });
 
     } catch (error: any) {
@@ -146,11 +151,11 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
           onJoinSuccess(challenge.id);
         }
         
-        Alert.alert(
-          'Success! 🎉',
-          'Transaction completed successfully!',
-          [{ text: 'OK' }]
-        );
+        setSuccessMessage({
+          title: 'Success! 🎉',
+          description: 'Transaction completed successfully!'
+        });
+        setShowSuccessModal(true);
         return;
       }
       
@@ -310,6 +315,46 @@ export const ChallengeDetailScreen = ({ route, navigation }: any) => {
 
         </View>
       </ScrollView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowSuccessModal(false)}>
+          <View style={styles.successModalContent}>
+            <TouchableOpacity 
+              style={styles.modalClose}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <X size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            <View style={styles.successIcon}>
+              <CheckCircle size={48} color="#14F195" />
+            </View>
+            
+            <Text style={styles.successTitle}>{successMessage.title}</Text>
+            <Text style={styles.successDescription}>{successMessage.description}</Text>
+            
+            <TouchableOpacity 
+              style={styles.successButton}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <LinearGradient
+                colors={['#14F195', '#0EA97F']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.successButtonGradient}
+              >
+                <Text style={styles.successButtonText}>OK</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -580,5 +625,71 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  successModalContent: {
+    backgroundColor: '#141414',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1F1F1F',
+    padding: 32,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1F1F1F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(20, 241, 149, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  successDescription: {
+    fontSize: 14,
+    color: '#AAAAAA',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  successButton: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  successButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  successButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
   },
 });
