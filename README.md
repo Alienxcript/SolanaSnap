@@ -369,8 +369,8 @@ MIT License - Free to use for learning and building!
 
 Built by:
 
-- **[Alienxcript](https://github.com/Alienxcript)** 
-- **[EndLes5](https://github.com/EndLes5)**
+- **[Nova](https://github.com/Alienxcript)** 
+- **[Endless](https://github.com/EndLes5)**
 
 ---
 
